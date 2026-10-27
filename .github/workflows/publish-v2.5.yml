@@ -29,6 +29,7 @@ jobs:
               assert archive.testzip() is None
               archive.extract('IZOBILIE-v2.5.exe')
           PY
+          mv 'izobilie v2.5.7z' izobilie.v2.5.7z
           sha256sum --check SHA256SUMS.txt
       - name: Upload draft and publish stable release
         working-directory: releases/v2.5
@@ -36,5 +37,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create v2.5 --draft --target "$GITHUB_SHA" --title "IZOBILIE 2.5" --notes-file release-notes.md IZOBILIE-v2.5.exe IZOBILIE-v2.5.zip 'izobilie v2.5.7z' SHA256SUMS.txt
+          if gh release view v2.5 >/dev/null 2>&1; then
+            gh release upload v2.5 SHA256SUMS.txt --clobber
+          else
+            gh release create v2.5 --draft --target "$GITHUB_SHA" --title "IZOBILIE 2.5" --notes-file release-notes.md IZOBILIE-v2.5.exe IZOBILIE-v2.5.zip izobilie.v2.5.7z SHA256SUMS.txt
+          fi
           gh release edit v2.5 --draft=false --latest
