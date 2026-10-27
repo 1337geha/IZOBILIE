@@ -1,0 +1,40 @@
+name: Publish IZOBILIE 2.5
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'releases/v2.5/**'
+      - '.github/workflows/publish-v2.5.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release-v2.5
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate release assets
+        working-directory: releases/v2.5
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('IZOBILIE-v2.5.zip') as archive:
+              assert archive.namelist() == ['IZOBILIE-v2.5.exe'], archive.namelist()
+              assert archive.testzip() is None
+              archive.extract('IZOBILIE-v2.5.exe')
+          PY
+          sha256sum --check SHA256SUMS.txt
+      - name: Upload draft and publish stable release
+        working-directory: releases/v2.5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create v2.5 --draft --target "$GITHUB_SHA" --title "IZOBILIE 2.5" --notes-file release-notes.md IZOBILIE-v2.5.exe IZOBILIE-v2.5.zip 'izobilie v2.5.7z' SHA256SUMS.txt
+          gh release edit v2.5 --draft=false --latest
